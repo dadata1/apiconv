@@ -1,1 +1,92 @@
-https://illinois.zoom.us/j/86500016019?pwd=YnJyZjFzdkQycXlnbkVRRWRUZWxjUT09
+<?xml version="1.0" encoding="UTF-8"?>
+<definitions xmlns="http://www.omg.org/spec/BPMN/20100524/MODEL" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:activiti="http://activiti.org/bpmn" xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI" xmlns:omgdc="http://www.omg.org/spec/DD/20100524/DC" xmlns:omgdi="http://www.omg.org/spec/DD/20100524/DI" typeLanguage="http://www.w3.org/2001/XMLSchema" expressionLanguage="http://www.w3.org/1999/XPath" targetNamespace="http://www.collibra.com/apiv2">
+  <collaboration id="Collaboration">
+    <participant id="pool1" name="Pool" processRef="commentCopy"></participant>
+  </collaboration>
+  <process id="commentCopy" name="commentCopy" isExecutable="true">
+    <laneSet id="laneSet_commentCopy">
+      <lane id="lane1">
+        <flowNodeRef>startevent1</flowNodeRef>
+        <flowNodeRef>scripttask1</flowNodeRef>
+        <flowNodeRef>endevent1</flowNodeRef>
+      </lane>
+    </laneSet>
+    <startEvent id="startevent1" name="Start">
+      <extensionElements>
+        <activiti:formProperty id="copycomments" name="Asset to Copy Comments to" type="asset" required="true"></activiti:formProperty>
+      </extensionElements>
+    </startEvent>
+    <scriptTask id="scripttask1" name="Script Task" scriptFormat="groovy" activiti:autoStoreVariables="false">
+      <script><![CDATA[import com.collibra.dgc.core.api.component.instance.CommentApi
+import com.collibra.dgc.core.api.dto.instance.comment.FindCommentsRequest
+import com.collibra.dgc.core.api.dto.instance.comment.FindCommentsRequest.Builder
+import com.collibra.dgc.core.api.component.user.UserApi
+import com.collibra.dgc.core.api.dto.instance.comment.AddCommentRequest
+import com.collibra.dgc.core.api.model.ResourceType
+
+def getUser(userId){
+    user = userApi.getUser(userId)
+    user = "${user.getFirstName()} ${user.getLastName()} "
+}
+def getComments(){
+    comments = commentApi.findComments(
+        FindCommentsRequest.builder()
+        .baseResourceId(item.getId())
+        .build()
+    ).getResults()
+    loggerApi.info("---> ${comments}")
+    if(comments.size() != 0){
+        comments.each{
+           content = it.getContent()
+           createdBy = it.getCreatedBy()
+           comment = "${getUser(createdBy)}: <BR> ${content}"
+           makecomment(copycomments,comment)
+           
+        }
+    }
+}
+
+def makecomment(assetId,comment){
+     commentApi.addComment(AddCommentRequest.builder()
+            .baseResourceId(assetId)
+            .baseResourceType(ResourceType.Asset)
+            .content(comment.toString())
+            .build()
+        )
+        loggerApi.info("Done!")
+}
+
+getComments()]]></script>
+    </scriptTask>
+    <sequenceFlow id="flow1" sourceRef="startevent1" targetRef="scripttask1"></sequenceFlow>
+    <endEvent id="endevent1" name="End"></endEvent>
+    <sequenceFlow id="flow2" sourceRef="scripttask1" targetRef="endevent1"></sequenceFlow>
+  </process>
+  <bpmndi:BPMNDiagram id="BPMNDiagram_Collaboration">
+    <bpmndi:BPMNPlane bpmnElement="Collaboration" id="BPMNPlane_Collaboration">
+      <bpmndi:BPMNShape bpmnElement="pool1" id="BPMNShape_pool1">
+        <omgdc:Bounds height="221.0" width="501.0" x="300.0" y="200.0"></omgdc:Bounds>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape bpmnElement="lane1" id="BPMNShape_lane1">
+        <omgdc:Bounds height="221.0" width="481.0" x="320.0" y="200.0"></omgdc:Bounds>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape bpmnElement="startevent1" id="BPMNShape_startevent1">
+        <omgdc:Bounds height="35.0" width="35.0" x="390.0" y="290.0"></omgdc:Bounds>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape bpmnElement="scripttask1" id="BPMNShape_scripttask1">
+        <omgdc:Bounds height="55.0" width="105.0" x="520.0" y="280.0"></omgdc:Bounds>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape bpmnElement="endevent1" id="BPMNShape_endevent1">
+        <omgdc:Bounds height="35.0" width="35.0" x="670.0" y="290.0"></omgdc:Bounds>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNEdge bpmnElement="flow1" id="BPMNEdge_flow1">
+        <omgdi:waypoint x="425.0" y="307.0"></omgdi:waypoint>
+        <omgdi:waypoint x="520.0" y="307.0"></omgdi:waypoint>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge bpmnElement="flow2" id="BPMNEdge_flow2">
+        <omgdi:waypoint x="625.0" y="307.0"></omgdi:waypoint>
+        <omgdi:waypoint x="670.0" y="307.0"></omgdi:waypoint>
+      </bpmndi:BPMNEdge>
+    </bpmndi:BPMNPlane>
+  </bpmndi:BPMNDiagram>
+</definitions>
